@@ -39,15 +39,16 @@ If a line segment is defined by two points $\mathbf{P}_1 = (x_1, y_1)$ and $\mat
     $$\mathbf{A} = \mathbf{P}_1 + \frac{1}{3}(\mathbf{P}_2 - \mathbf{P}_1)$$
 2.  **Point C:** Divides the segment into a 2:3 ratio:
     $$\mathbf{C} = \mathbf{P}_1 + \frac{2}{3}(\mathbf{P}_2 - \mathbf{P}_1)$$
-3.  **Point B:**The apex of the equilateral triangle. To find this point, we can consider the vector $\mathbf{v} = \mathbf{P}_2 - \mathbf{P}_1$. We rotate this vector by $60^\circ$ (or $\pi/3$ radians) and scale it by $1/3$, then add it to $\mathbf{A}$. The rotation matrix for a $2D$ vector $(x, y)$ by an angle $\theta$ is:
-$$
-\begin{pmatrix} x' \\ y' \end{pmatrix} = \begin{pmatrix} \cos \theta & -\sin \theta \\ \sin \theta & \cos \theta \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix}
-$$
-For $\theta = -\pi/3$:
-$$
-\begin{pmatrix} x'_v \\ y'_v \end{pmatrix} = \begin{pmatrix} 1/2 & \sqrt{3}/2 \\ -\sqrt{3}/2 & 1/2 \end{pmatrix} \begin{pmatrix} x_v \\ y_v \end{pmatrix}
-$$
-So, the vector from $\mathbf{A}$ to $\mathbf{B}$ is $\frac{1}{3}\mathbf{v}'$, and:
+3.  **Point B:** The apex of the equilateral triangle. To find this point, we can consider the vector $\mathbf{v} = \mathbf{P}_2 - \mathbf{P}_1$. We rotate this vector by $60^\circ$ (or $\pi/3$ radians) and scale it by $1/3$, then add it to $\mathbf{A}$. The rotation matrix for a $2D$ vector $(x, y)$ by an angle $\theta$ is:
+    $$
+    \begin{pmatrix} x' \\ y' \end{pmatrix} = \begin{pmatrix} \cos \theta & -\sin \theta \\ \sin \theta & \cos \theta \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix}
+    $$
+    For $\theta = -\pi/3$:
+    $$
+    \begin{pmatrix} x'_v \\ y'_v \end{pmatrix} = \begin{pmatrix} 1/2 & \sqrt{3}/2 \\ -\sqrt{3}/2 & 1/2 \end{pmatrix} \begin{pmatrix} x_v \\ y_v \end{pmatrix}
+    $$
+    So, the vector from $\mathbf{A}$ to $\mathbf{B}$ is $\frac{1}{3}\mathbf{v}'$, and:
+    $$\mathbf{B} = \mathbf{A} + \frac{1}{3} \begin{pmatrix} 1/2 & \sqrt{3}/2 \\ -\sqrt{3}/2 & 1/2 \end{pmatrix} (\mathbf{P}_2 - \mathbf{P}_1)$$
 
 The `drawKochLine` function in the JavaScript code recursively applies this subdivision and point calculation.
 
@@ -135,11 +136,11 @@ To run this application locally:
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+    git clone [https://github.com/mimossaaa/Fractalexplorer.git](https://github.com/mimossaaa/Fractalexplorer.git)
     ```
 2.  **Navigate to the project directory:**
     ```bash
-    cd your-repo-name
+    cd Fractalexplorer
     ```
 3.  **Open the `index.html` file in your web browser.**
 
@@ -150,5 +151,3 @@ Contributions to this project are welcome. If you have ideas for new fractals, i
 ## Author
 
 [Majid Rebouh](https://github.com/mimossaaa)
-
-
