@@ -4,7 +4,7 @@ This repository hosts a web application that allows users to interactively explo
 
 ## Live Demo
 
-[**[Link to Live Demo (if deployed)]**](https://your-deployed-fractal-site.com)
+[**[Link to Live Demo (if deployed)]**]((https://mimossaaa.github.io/Fractalexplorer/))
 
 ## Features
 
