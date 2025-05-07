@@ -141,46 +141,46 @@
 
          .social-button {
              display: block;
-             width: 50px; /* Size of the diamond base */
-             height: 50px; /* Size of the diamond base */
-             background: linear-gradient(45deg, #3b82f6, #1d4ed8); /* Initial gradient */
+             width: 70px; /* Increased size for octagon */
+             height: 70px; /* Increased size for octagon */
              color: white;
              text-decoration: none;
              display: flex;
              align-items: center;
              justify-content: center;
              font-weight: bold;
-             transform: rotate(45deg); /* Rotate to make it a diamond */
-             transition: background 0.3s ease, transform 0.3s ease;
+             transition: background 0.5s ease, transform 0.3s ease; /* Smooth transition */
              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-             position: relative; /* Needed for content rotation */
+             position: relative;
+             /* Create Octagon shape using clip-path */
+             clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
          }
 
          .social-button:hover {
-             background: linear-gradient(45deg, #1d4ed8, #3b82f6); /* Gradient on hover */
-             transform: rotate(45deg) scale(1.1); /* Scale up slightly on hover */
+             transform: scale(1.1); /* Scale up slightly on hover */
          }
 
-         .social-button span {
-             transform: rotate(-45deg); /* Counter-rotate content */
-             display: block; /* Ensure span takes up space */
-         }
-
-         /* Specific colors for buttons */
+         /* Specific colors and gradients for buttons */
          .social-button.github {
-             background: linear-gradient(45deg, #333, #1a1a1a);
+             background: linear-gradient(45deg, #333, #1a1a1a); /* Initial GitHub gradient */
          }
          .social-button.github:hover {
-             background: linear-gradient(45deg, #1a1a1a, #333);
+             background: linear-gradient(135deg, #1a1a1a, #333); /* GitHub gradient on hover (changed angle) */
          }
 
          .social-button.linkedin {
-             background: linear-gradient(45deg, #0077b5, #0e76a8);
+             background: linear-gradient(45deg, #4a00e0, #8e2de2); /* Initial Blue/Purple gradient */
          }
           .social-button.linkedin:hover {
-             background: linear-gradient(45deg, #0e76a8, #0077b5);
+             background: linear-gradient(135deg, #8e2de2, #4a00e0); /* Blue/Purple gradient on hover (changed angle) */
          }
 
+         .social-button.custom1 {
+             background: linear-gradient(45deg, #a8ff78, #78ffd6); /* Initial Green/Yellow gradient */
+         }
+          .social-button.custom1:hover {
+             background: linear-gradient(135deg, #78ffd6, #a8ff78); /* Green/Yellow gradient on hover (changed angle) */
+         }
 
     </style>
 </head>
@@ -223,8 +223,8 @@
 
     <footer class="bg-gray-800 text-white text-center py-4 mt-8">
         <div class="social-buttons">
-             <a href="https://github.com/mimossaaa" target="_blank" class="social-button github"><span>GitHub</span></a>
-             <a href="https://www.linkedin.com/in/majid-rebouh-846b462b3/" target="_blank" class="social-button linkedin"><span>LinkedIn</span></a>
+             <a href="https://github.com/mimossaaa" target="_blank" class="social-button github">GitHub</a>
+             <a href="https://www.linkedin.com/in/majid-rebouh-846b462b3/" target="_blank" class="social-button linkedin">LinkedIn</a>
         </div>
         <p>&copy; 2025 Majid Rebouh</p>
     </footer>
