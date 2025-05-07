@@ -15,12 +15,13 @@
             border-radius: 8px; /* Rounded corners */
             overflow: hidden; /* Hide overflow */
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add shadow */
+            background-color: #000; /* Black background for fractals */
         }
 
         canvas {
             display: block; /* Remove extra space below canvas */
             width: 100%;
-            height: auto; /* Maintain aspect ratio */
+            height: 500px; /* Give canvas a fixed height for visibility */
             background-color: #000; /* Black background for fractals */
         }
 
@@ -47,7 +48,8 @@
         }
 
         .control-group input[type="number"],
-        .control-group input[type="range"] {
+        .control-group input[type="range"],
+        .control-group input[type="text"] {
             padding: 8px;
             border: 1px solid #d1d5db; /* Light border */
             border-radius: 4px;
@@ -114,12 +116,12 @@
     </header>
 
     <nav class="bg-gray-200 py-3 shadow-sm">
-        <div class="container mx-auto px-6 flex justify-center">
-            <a href="#mandelbrot" class="nav-link active" data-fractal="mandelbrot">Mandelbrot Set</a>
-            <a href="#julia" class="nav-link" data-fractal="julia">Julia Set</a>
+        <div class="container mx-auto px-6 flex justify-center flex-wrap">
+            <a href="#koch" class="nav-link active" data-fractal="koch">Koch Snowflake</a>
             <a href="#fern" class="nav-link" data-fractal="fern">Barnsley Fern</a>
             <a href="#sierpinski" class="nav-link" data-fractal="sierpinski">Sierpinski Triangle</a>
-            <a href="#lsystem" class="nav-link" data-fractal="lsystem">L-System Plant</a>
+            <a href="#hilbert" class="nav-link" data-fractal="hilbert">Hilbert Curve</a>
+            <a href="#dragon" class="nav-link" data-fractal="dragon">Dragon Curve</a>
         </div>
     </nav>
 
@@ -131,20 +133,11 @@
                 </div>
         </div>
 
-        <div id="mandelbrot-content" class="fractal-content active">
-            </div>
-
-        <div id="julia-content" class="fractal-content">
-            </div>
-
-        <div id="fern-content" class="fractal-content">
-            </div>
-
-        <div id="sierpinski-content" class="fractal-content">
-            </div>
-
-        <div id="lsystem-content" class="fractal-content">
-            </div>
+        <div id="koch-content" class="fractal-content active"></div>
+        <div id="fern-content" class="fractal-content"></div>
+        <div id="sierpinski-content" class="fractal-content"></div>
+        <div id="hilbert-content" class="fractal-content"></div>
+        <div id="dragon-content" class="fractal-content"></div>
 
     </main>
 
@@ -159,34 +152,30 @@
         const navLinks = document.querySelectorAll('.nav-link');
         const fractalContentDivs = document.querySelectorAll('.fractal-content');
 
-        let currentFractal = 'mandelbrot'; // Default fractal
+        let currentFractal = 'koch'; // Default fractal
         let animationFrameId = null; // To manage animation loops
 
         // Canvas dimensions (will be set dynamically)
         let canvasWidth;
         let canvasHeight;
 
-        // Pan and Zoom variables
-        let offsetX = 0;
-        let offsetY = 0;
-        let scale = 1;
+        // Pan and Zoom variables (simplified for line fractals)
+        let translateX = 0;
+        let translateY = 0;
+        let globalScale = 1; // Use a single global scale for simpler fractals
         let isDragging = false;
         let dragStartX, dragStartY;
 
         // --- Fractal Specific Parameters ---
 
-        // Mandelbrot/Julia
-        let maxIterations = 100;
-        let zoomCenterX = 0;
-        let zoomCenterY = 0;
-        let juliaCr = -0.7;
-        let juliaCi = 0.27015;
+        // Koch Snowflake
+        let kochGenerations = 4;
 
         // Barnsley Fern
         let fernPoints = [];
         let fernCurrentX = 0;
         let fernCurrentY = 0;
-        let fernIterations = 10000; // Number of points to draw per frame
+        let fernIterationsPerFrame = 1000; // Number of points to draw per frame
         let fernTotalPoints = 0; // Total points drawn
         let fernMaxPoints = 50000; // Max points for fern
         let fernAnimating = false;
@@ -195,37 +184,31 @@
         let sierpinskiPoints = [];
         let sierpinskiVertices = [{x: 0, y: 0}, {x: 1, y: 0}, {x: 0.5, y: Math.sqrt(3)/2}];
         let sierpinskiCurrentPoint = {x: 0.25, y: 0.25};
-        let sierpinskiIterations = 1000; // Number of points to draw per frame
+        let sierpinskiIterationsPerFrame = 1000; // Number of points to draw per frame
         let sierpinskiTotalPoints = 0;
         let sierpinskiMaxPoints = 50000;
         let sierpinskiAnimating = false;
 
-        // L-System
-        let lsystemAxiom = "F";
-        let lsystemRules = {"F": "FF+[+F-F-F]-[-F+F+F]"};
-        let lsystemAngle = 25; // Angle in degrees
-        let lsystemGenerations = 4;
-        let lsystemString = lsystemAxiom;
-        let lsystemStep = 10; // Initial step length
-        let lsystemAnimating = false;
-        let lsystemAnimationStep = 0; // Current step in drawing animation
+        // Hilbert Curve
+        let hilbertGenerations = 4;
+        let hilbertAnimating = false;
+        let hilbertAnimationStep = 0;
+        let hilbertString = "";
+        let hilbertRules = {"A": "+BF-AFA-FB+", "B": "-AF+BFB+FA-"};
+        let hilbertAxiom = "A";
+        let hilbertAngle = 90; // Angle in degrees
+
+        // Dragon Curve
+        let dragonGenerations = 10;
+        let dragonAnimating = false;
+        let dragonAnimationStep = 0;
+        let dragonString = "";
+        let dragonRules = {"X": "X+YF+", "Y": "-FX-Y"};
+        let dragonAxiom = "FX";
+        let dragonAngle = 90; // Angle in degrees
+
 
         // --- Helper Functions ---
-
-        // Function to map canvas coordinates to fractal coordinates
-        function mapToFractalCoords(x, y) {
-            const fractalX = (x / canvasWidth - 0.5) * (4 / scale) - offsetX + zoomCenterX;
-            const fractalY = (y / canvasHeight - 0.5) * (4 / scale) - offsetY + zoomCenterY;
-            return { x: fractalX, y: fractalY };
-        }
-
-        // Function to map fractal coordinates back to canvas coordinates
-        function mapToCanvasCoords(fractalX, fractalY) {
-             const canvasX = (fractalX - zoomCenterX + offsetX) * scale / 4 * canvasWidth + canvasWidth / 2;
-             const canvasY = (fractalY - zoomCenterY + offsetY) * scale / 4 * canvasHeight + canvasHeight / 2;
-             return { x: canvasX, y: canvasY };
-         }
-
 
         // Function to set canvas size and update dimensions
         function setCanvasSize() {
@@ -254,13 +237,8 @@
             };
 
             switch (fractalType) {
-                case 'mandelbrot':
-                    controlsDiv.appendChild(createControlGroup('Max Iterations:', `<input type="number" id="maxIterations" value="${maxIterations}" min="10" max="1000">`));
-                    break;
-                case 'julia':
-                    controlsDiv.appendChild(createControlGroup('Max Iterations:', `<input type="number" id="maxIterations" value="${maxIterations}" min="10" max="1000">`));
-                    controlsDiv.appendChild(createControlGroup('C (Real):', `<input type="number" id="juliaCr" value="${juliaCr}" step="0.0001">`));
-                    controlsDiv.appendChild(createControlGroup('C (Imaginary):', `<input type="number" id="juliaCi" value="${juliaCi}" step="0.0001">`));
+                case 'koch':
+                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="kochGenerations" value="${kochGenerations}" min="1" max="7">`));
                     break;
                 case 'fern':
                     controlsDiv.appendChild(createControlGroup('Max Points:', `<input type="number" id="fernMaxPoints" value="${fernMaxPoints}" min="10000" max="500000">`));
@@ -270,25 +248,25 @@
                     controlsDiv.appendChild(fernAnimateBtn);
                     break;
                 case 'sierpinski':
-                    controlsDiv.appendChild(createControlGroup('Max Points:', `<input type="number" id="sierpinskiMaxPoints" value="${sierpinskiMaxPoints}" min="10000" max="500000">`));
+                     controlsDiv.appendChild(createControlGroup('Max Points:', `<input type="number" id="sierpinskiMaxPoints" value="${sierpinskiMaxPoints}" min="10000" max="500000">`));
                      const sierpinskiAnimateBtn = document.createElement('button');
                      sierpinskiAnimateBtn.textContent = sierpinskiAnimating ? 'Stop Animation' : 'Start Animation';
                      sierpinskiAnimateBtn.id = 'sierpinskiAnimateBtn';
                      controlsDiv.appendChild(sierpinskiAnimateBtn);
                     break;
-                case 'lsystem':
-                    controlsDiv.appendChild(createControlGroup('Axiom:', `<input type="text" id="lsystemAxiom" value="${lsystemAxiom}">`));
-                    controlsDiv.appendChild(createControlGroup('Rules (JSON):', `<input type="text" id="lsystemRules" value='${JSON.stringify(lsystemRules)}'>`));
-                    controlsDiv.appendChild(createControlGroup('Angle (Degrees):', `<input type="number" id="lsystemAngle" value="${lsystemAngle}" step="1">`));
-                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="lsystemGenerations" value="${lsystemGenerations}" min="1" max="10">`));
-                    const lsystemGenerateBtn = document.createElement('button');
-                    lsystemGenerateBtn.textContent = 'Generate String';
-                    lsystemGenerateBtn.id = 'lsystemGenerateBtn';
-                    controlsDiv.appendChild(lsystemGenerateBtn);
-                    const lsystemAnimateBtn = document.createElement('button');
-                    lsystemAnimateBtn.textContent = lsystemAnimating ? 'Stop Drawing' : 'Start Drawing';
-                    lsystemAnimateBtn.id = 'lsystemAnimateBtn';
-                    controlsDiv.appendChild(lsystemAnimateBtn);
+                case 'hilbert':
+                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="hilbertGenerations" value="${hilbertGenerations}" min="1" max="7">`));
+                     const hilbertAnimateBtn = document.createElement('button');
+                     hilbertAnimateBtn.textContent = hilbertAnimating ? 'Stop Drawing' : 'Start Drawing';
+                     hilbertAnimateBtn.id = 'hilbertAnimateBtn';
+                     controlsDiv.appendChild(hilbertAnimateBtn);
+                    break;
+                case 'dragon':
+                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="dragonGenerations" value="${dragonGenerations}" min="1" max="15">`));
+                     const dragonAnimateBtn = document.createElement('button');
+                     dragonAnimateBtn.textContent = dragonAnimating ? 'Stop Drawing' : 'Start Drawing';
+                     dragonAnimateBtn.id = 'dragonAnimateBtn';
+                     controlsDiv.appendChild(dragonAnimateBtn);
                     break;
             }
 
@@ -299,23 +277,9 @@
         // Function to add event listeners to controls
         function addControlEventListeners(fractalType) {
             switch (fractalType) {
-                case 'mandelbrot':
-                    document.getElementById('maxIterations').addEventListener('change', (e) => {
-                        maxIterations = parseInt(e.target.value);
-                        drawFractal();
-                    });
-                    break;
-                case 'julia':
-                    document.getElementById('maxIterations').addEventListener('change', (e) => {
-                        maxIterations = parseInt(e.target.value);
-                        drawFractal();
-                    });
-                    document.getElementById('juliaCr').addEventListener('change', (e) => {
-                        juliaCr = parseFloat(e.target.value);
-                        drawFractal();
-                    });
-                     document.getElementById('juliaCi').addEventListener('change', (e) => {
-                        juliaCi = parseFloat(e.target.value);
+                case 'koch':
+                    document.getElementById('kochGenerations').addEventListener('change', (e) => {
+                        kochGenerations = parseInt(e.target.value);
                         drawFractal();
                     });
                     break;
@@ -358,42 +322,37 @@
                          }
                      });
                     break;
-                case 'lsystem':
-                    document.getElementById('lsystemAxiom').addEventListener('change', (e) => {
-                        lsystemAxiom = e.target.value;
-                        lsystemString = lsystemAxiom; // Reset string
-                        lsystemAnimationStep = 0; // Reset animation
-                    });
-                    document.getElementById('lsystemRules').addEventListener('change', (e) => {
-                         try {
-                             lsystemRules = JSON.parse(e.target.value);
-                             lsystemString = lsystemAxiom; // Reset string
-                             lsystemAnimationStep = 0; // Reset animation
-                         } catch (error) {
-                             console.error("Invalid JSON for L-System rules:", error);
-                             alert("Invalid JSON format for rules. Please use valid JSON.");
-                         }
-                    });
-                    document.getElementById('lsystemAngle').addEventListener('change', (e) => {
-                        lsystemAngle = parseFloat(e.target.value);
-                        lsystemAnimationStep = 0; // Reset animation
-                    });
-                    document.getElementById('lsystemGenerations').addEventListener('change', (e) => {
-                        lsystemGenerations = parseInt(e.target.value);
-                        lsystemString = lsystemAxiom; // Reset string
-                        lsystemAnimationStep = 0; // Reset animation
-                    });
-                    document.getElementById('lsystemGenerateBtn').addEventListener('click', () => {
-                        generateLSystemString();
-                        lsystemAnimationStep = 0; // Reset animation
+                 case 'hilbert':
+                    document.getElementById('hilbertGenerations').addEventListener('change', (e) => {
+                        hilbertGenerations = parseInt(e.target.value);
+                        generateLSystemString('hilbert'); // Regenerate string
+                        hilbertAnimationStep = 0; // Reset animation
                         drawFractal(); // Draw the initial state or full generated string
                     });
-                    document.getElementById('lsystemAnimateBtn').addEventListener('click', () => {
-                         lsystemAnimating = !lsystemAnimating;
-                         document.getElementById('lsystemAnimateBtn').textContent = lsystemAnimating ? 'Stop Drawing' : 'Start Drawing';
-                         if (lsystemAnimating) {
-                             lsystemAnimationStep = 0; // Start drawing from scratch
-                             animateLSystem();
+                     document.getElementById('hilbertAnimateBtn').addEventListener('click', () => {
+                         hilbertAnimating = !hilbertAnimating;
+                         document.getElementById('hilbertAnimateBtn').textContent = hilbertAnimating ? 'Stop Drawing' : 'Start Drawing';
+                         if (hilbertAnimating) {
+                             hilbertAnimationStep = 0; // Start drawing from scratch
+                             animateLSystem('hilbert');
+                         } else {
+                             cancelAnimationFrame(animationFrameId);
+                         }
+                    });
+                    break;
+                 case 'dragon':
+                    document.getElementById('dragonGenerations').addEventListener('change', (e) => {
+                        dragonGenerations = parseInt(e.target.value);
+                        generateLSystemString('dragon'); // Regenerate string
+                        dragonAnimationStep = 0; // Reset animation
+                        drawFractal(); // Draw the initial state or full generated string
+                    });
+                     document.getElementById('dragonAnimateBtn').addEventListener('click', () => {
+                         dragonAnimating = !dragonAnimating;
+                         document.getElementById('dragonAnimateBtn').textContent = dragonAnimating ? 'Stop Drawing' : 'Start Drawing';
+                         if (dragonAnimating) {
+                             dragonAnimationStep = 0; // Start drawing from scratch
+                             animateLSystem('dragon');
                          } else {
                              cancelAnimationFrame(animationFrameId);
                          }
@@ -405,90 +364,56 @@
 
         // --- Drawing Functions for each Fractal ---
 
-        function drawMandelbrot() {
+        function drawKochSnowflake() {
             cancelAnimationFrame(animationFrameId); // Stop any ongoing animation
             ctx.clearRect(0, 0, canvasWidth, canvasHeight); // Clear canvas
             ctx.fillStyle = '#000'; // Set background to black
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-            const aspectRatio = canvasWidth / canvasHeight;
-            const viewWidth = 4 / scale;
-            const viewHeight = viewWidth / aspectRatio;
-            const xMin = zoomCenterX - viewWidth / 2 - offsetX;
-            const yMin = zoomCenterY - viewHeight / 2 - offsetY;
-            const xMax = xMin + viewWidth;
-            const yMax = yMin + viewHeight;
+            ctx.beginPath();
+            ctx.strokeStyle = '#fff'; // White color for the snowflake
+            ctx.lineWidth = 1;
 
-            const pixelSizeX = (xMax - xMin) / canvasWidth;
-            const pixelSizeY = (yMax - yMin) / canvasHeight;
+            // Starting points for a triangle
+            const p1 = { x: canvasWidth * 0.1 + translateX * globalScale, y: canvasHeight * 0.75 + translateY * globalScale };
+            const p2 = { x: canvasWidth * 0.9 + translateX * globalScale, y: canvasHeight * 0.75 + translateY * globalScale };
+            const p3 = { x: canvasWidth * 0.5 + translateX * globalScale, y: canvasHeight * 0.75 - (canvasWidth * 0.8 * Math.sqrt(3)/2) + translateY * globalScale }; // Equilateral triangle
 
-            for (let x = 0; x < canvasWidth; x++) {
-                for (let y = 0; y < canvasHeight; y++) {
-                    const cReal = xMin + x * pixelSizeX;
-                    const cImaginary = yMin + y * pixelSizeY;
+            // Draw the three sides
+            drawKochLine(p1, p2, kochGenerations);
+            drawKochLine(p2, p3, kochGenerations);
+            drawKochLine(p3, p1, kochGenerations);
 
-                    let zReal = 0;
-                    let zImaginary = 0;
-                    let iterations = 0;
+            ctx.stroke();
+        }
 
-                    while (zReal * zReal + zImaginary * zImaginary <= 4 && iterations < maxIterations) {
-                        const nextZReal = zReal * zReal - zImaginary * zImaginary + cReal;
-                        const nextZImaginary = 2 * zReal * zImaginary + cImaginary;
-                        zReal = nextZReal;
-                        zImaginary = nextZImaginary;
-                        iterations++;
-                    }
+        function drawKochLine(p1, p2, generations) {
+            if (generations === 0) {
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+            } else {
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
 
-                    if (iterations < maxIterations) {
-                        // Color based on the number of iterations
-                        const color = `hsl(${iterations % 360}, 100%, ${iterations < maxIterations ? 50 : 0}%)`;
-                        ctx.fillStyle = color;
-                        ctx.fillRect(x, y, 1, 1);
-                    }
-                }
+                const pA = { x: p1.x + dx / 3, y: p1.y + dy / 3 };
+                const pC = { x: p1.x + dx * 2 / 3, y: p1.y + dy * 2 / 3 };
+
+                // Calculate point pB (peak of the triangle)
+                const angle = Math.atan2(dy, dx);
+                const len = Math.sqrt(dx * dx + dy * dy) / 3;
+                const pB = {
+                    x: pA.x + len * Math.cos(angle - Math.PI / 3), // -60 degrees
+                    y: pA.y + len * Math.sin(angle - Math.PI / 3)
+                };
+
+                // Recursively draw the four segments
+                drawKochLine(p1, pA, generations - 1);
+                drawKochLine(pA, pB, generations - 1);
+                drawKochLine(pB, pC, generations - 1);
+                drawKochLine(pC, p2, generations - 1);
             }
         }
 
-        function drawJulia() {
-            cancelAnimationFrame(animationFrameId); // Stop any ongoing animation
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight); // Clear canvas
-            ctx.fillStyle = '#000'; // Set background to black
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-            const aspectRatio = canvasWidth / canvasHeight;
-            const viewWidth = 4 / scale;
-            const viewHeight = viewWidth / aspectRatio;
-            const xMin = zoomCenterX - viewWidth / 2 - offsetX;
-            const yMin = zoomCenterY - viewHeight / 2 - offsetY;
-            const xMax = xMin + viewWidth;
-            const yMax = yMin + viewHeight;
-
-            const pixelSizeX = (xMax - xMin) / canvasWidth;
-            const pixelSizeY = (yMax - yMin) / canvasHeight;
-
-            for (let x = 0; x < canvasWidth; x++) {
-                for (let y = 0; y < canvasHeight; y++) {
-                    let zReal = xMin + x * pixelSizeX;
-                    let zImaginary = yMin + y * pixelSizeY;
-                    let iterations = 0;
-
-                    while (zReal * zReal + zImaginary * zImaginary <= 4 && iterations < maxIterations) {
-                        const nextZReal = zReal * zReal - zImaginary * zImaginary + juliaCr;
-                        const nextZImaginary = 2 * zReal * zImaginary + juliaCi;
-                        zReal = nextZReal;
-                        zImaginary = nextZImaginary;
-                        iterations++;
-                    }
-
-                    if (iterations < maxIterations) {
-                         // Color based on the number of iterations
-                        const color = `hsl(${iterations % 360}, 100%, ${iterations < maxIterations ? 50 : 0}%)`;
-                        ctx.fillStyle = color;
-                        ctx.fillRect(x, y, 1, 1);
-                    }
-                }
-            }
-        }
 
         function resetFern() {
             fernPoints = [];
@@ -508,7 +433,7 @@
                  while(fernTotalPoints < fernMaxPoints) {
                      generateFernPoint();
                  }
-                 renderFernPoints();
+                 renderFernPoints(fernPoints.length); // Render all points
              } else {
                 // Animation is handled by animateFern
              }
@@ -538,18 +463,18 @@
              fernCurrentY = nextY;
 
              // Map fern coordinates (-2.18 to 2.65 for x, 0 to 9.99 for y) to canvas coordinates
-             // Adjust mapping based on pan and zoom
-             const mappedX = (fernCurrentX * scale + offsetX) * (canvasWidth / 6) + canvasWidth / 2; // Approx range -3 to 3 -> map to 0 to canvasWidth
-             const mappedY = canvasHeight - ((fernCurrentY * scale + offsetY) * (canvasHeight / 10) + canvasHeight / 10); // Approx range 0 to 10 -> map to canvasHeight to 0
+             // Apply global scale and translation
+             const mappedX = (fernCurrentX * globalScale + translateX) * (canvasWidth / 6) + canvasWidth / 2; // Approx range -3 to 3 -> map to 0 to canvasWidth
+             const mappedY = canvasHeight - ((fernCurrentY * globalScale + translateY) * (canvasHeight / 10) + canvasHeight / 10); // Approx range 0 to 10 -> map to canvasHeight to 0
 
              fernPoints.push({x: mappedX, y: mappedY});
              fernTotalPoints++;
         }
 
-        function renderFernPoints() {
+        function renderFernPoints(count) {
             ctx.fillStyle = '#0f0'; // Green color for the fern
-            // Draw only the new points generated in the last iteration
-             for (let i = fernPoints.length - fernIterations; i < fernPoints.length; i++) {
+            // Draw the specified number of points
+             for (let i = fernPoints.length - count; i < fernPoints.length; i++) {
                  if (i >= 0) {
                     const p = fernPoints[i];
                     ctx.fillRect(p.x, p.y, 1, 1); // Draw a 1x1 pixel point
@@ -565,7 +490,7 @@
             }
 
             // Generate a batch of points
-            for(let i = 0; i < fernIterations; i++) {
+            for(let i = 0; i < fernIterationsPerFrame; i++) {
                 if (fernTotalPoints < fernMaxPoints) {
                     generateFernPoint();
                 } else {
@@ -574,7 +499,7 @@
             }
 
             // Render the newly generated points
-            renderFernPoints();
+            renderFernPoints(fernIterationsPerFrame);
 
             animationFrameId = requestAnimationFrame(animateFern);
         }
@@ -586,12 +511,6 @@
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
              ctx.fillStyle = '#000'; // Set background to black
              ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-             // Draw initial vertices (optional, but helps visualize the bounds)
-             // ctx.fillStyle = '#fff';
-             // sierpinskiVertices.forEach(v => {
-             //     const mappedV = mapSierpinskiToCanvas(v.x, v.y);
-             //     ctx.fillRect(mappedV.x, mappedV.y, 2, 2);
-             // });
         }
 
 
@@ -603,7 +522,7 @@
                  while(sierpinskiTotalPoints < sierpinskiMaxPoints) {
                      generateSierpinskiPoint();
                  }
-                 renderSierpinskiPoints();
+                 renderSierpinskiPoints(sierpinskiPoints.length); // Render all points
              } else {
                 // Animation is handled by animateSierpinski
              }
@@ -618,7 +537,7 @@
             sierpinskiCurrentPoint.y = (sierpinskiCurrentPoint.y + targetVertex.y) / 2;
 
             // Map Sierpinski coordinates (0 to 1 for x, 0 to sqrt(3)/2 for y) to canvas coordinates
-            // Adjust mapping based on pan and zoom
+            // Apply global scale and translation
             const mappedPoint = mapSierpinskiToCanvas(sierpinskiCurrentPoint.x, sierpinskiCurrentPoint.y);
 
             sierpinskiPoints.push(mappedPoint);
@@ -626,17 +545,17 @@
         }
 
         function mapSierpinskiToCanvas(x, y) {
-            // Scale and translate to fit the canvas, applying pan and zoom
-            const mappedX = (x * scale + offsetX) * canvasWidth * 0.8 + canvasWidth * 0.1; // Map 0-1 range to 10%-90% of canvas width
-            const mappedY = canvasHeight - ((y * scale + offsetY) * canvasHeight * 0.8 + canvasHeight * 0.1); // Map 0-sqrt(3)/2 range to 90%-10% of canvas height (inverted y)
+            // Scale and translate to fit the canvas, applying global scale and translation
+            const mappedX = (x * globalScale + translateX) * canvasWidth * 0.8 + canvasWidth * 0.1; // Map 0-1 range to 10%-90% of canvas width
+            const mappedY = canvasHeight - ((y * globalScale + translateY) * canvasHeight * 0.8 + canvasHeight * 0.1); // Map 0-sqrt(3)/2 range to 90%-10% of canvas height (inverted y)
             return { x: mappedX, y: mappedY };
         }
 
 
-        function renderSierpinskiPoints() {
+        function renderSierpinskiPoints(count) {
              ctx.fillStyle = '#fff'; // White color for Sierpinski
-             // Draw only the new points generated in the last iteration
-             for (let i = sierpinskiPoints.length - sierpinskiIterations; i < sierpinskiPoints.length; i++) {
+             // Draw the specified number of points
+             for (let i = sierpinskiPoints.length - count; i < sierpinskiPoints.length; i++) {
                  if (i >= 0) {
                     const p = sierpinskiPoints[i];
                     ctx.fillRect(p.x, p.y, 1, 1); // Draw a 1x1 pixel point
@@ -652,7 +571,7 @@
              }
 
              // Generate a batch of points
-             for(let i = 0; i < sierpinskiIterations; i++) {
+             for(let i = 0; i < sierpinskiIterationsPerFrame; i++) {
                  if (sierpinskiTotalPoints < sierpinskiMaxPoints) {
                      generateSierpinskiPoint();
                  } else {
@@ -661,47 +580,121 @@
              }
 
              // Render the newly generated points
-             renderSierpinskiPoints();
+             renderSierpinskiPoints(sierpinskiIterationsPerFrame);
 
              animationFrameId = requestAnimationFrame(animateSierpinski);
         }
 
-        function generateLSystemString() {
-            lsystemString = lsystemAxiom;
-            for (let i = 0; i < lsystemGenerations; i++) {
-                let nextString = "";
-                for (let j = 0; j < lsystemString.length; j++) {
-                    const char = lsystemString[j];
-                    nextString += lsystemRules[char] || char;
-                }
-                lsystemString = nextString;
+        function generateLSystemString(fractalType) {
+            let axiom, rules, generations;
+            if (fractalType === 'hilbert') {
+                axiom = hilbertAxiom;
+                rules = hilbertRules;
+                generations = hilbertGenerations;
+                hilbertString = axiom;
+            } else if (fractalType === 'dragon') {
+                 axiom = dragonAxiom;
+                 rules = dragonRules;
+                 generations = dragonGenerations;
+                 dragonString = axiom;
+            } else { // Assuming L-System Plant
+                 axiom = lsystemAxiom;
+                 rules = lsystemRules;
+                 generations = lsystemGenerations;
+                 lsystemString = axiom;
             }
-             console.log("Generated L-System String:", lsystemString);
+
+
+            let currentString = axiom;
+            for (let i = 0; i < generations; i++) {
+                let nextString = "";
+                for (let j = 0; j < currentString.length; j++) {
+                    const char = currentString[j];
+                    nextString += rules[char] || char;
+                }
+                currentString = nextString;
+            }
+
+            if (fractalType === 'hilbert') {
+                 hilbertString = currentString;
+                 console.log("Generated Hilbert String:", hilbertString);
+            } else if (fractalType === 'dragon') {
+                 dragonString = currentString;
+                 console.log("Generated Dragon String:", dragonString);
+            } else {
+                 lsystemString = currentString;
+                 console.log("Generated L-System Plant String:", lsystemString);
+            }
         }
 
-        function drawLSystem() {
+        function drawLSystem(fractalType) {
              cancelAnimationFrame(animationFrameId); // Stop any ongoing animation
              ctx.clearRect(0, 0, canvasWidth, canvasHeight); // Clear canvas
              ctx.fillStyle = '#000'; // Set background to black
              ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-             if (!lsystemAnimating) {
+             let animating, animationStep, lsystemString;
+             if (fractalType === 'hilbert') {
+                 animating = hilbertAnimating;
+                 animationStep = hilbertAnimationStep;
+                 lsystemString = hilbertString;
+             } else if (fractalType === 'dragon') {
+                 animating = dragonAnimating;
+                 animationStep = dragonAnimationStep;
+                 lsystemString = dragonString;
+             } else { // L-System Plant
+                 animating = lsystemAnimating;
+                 animationStep = lsystemAnimationStep;
+                 lsystemString = lsystemString; // This is the original lsystemString
+             }
+
+
+             if (!animating) {
                   // Draw the full generated string at once
-                  renderLSystem(lsystemString.length);
+                  renderLSystem(fractalType, lsystemString.length);
              } else {
                  // Animation is handled by animateLSystem
              }
         }
 
-        function renderLSystem(stepsToDraw) {
+        function renderLSystem(fractalType, stepsToDraw) {
             ctx.beginPath();
-            ctx.strokeStyle = '#0f0'; // Green color for the plant
+            ctx.strokeStyle = '#0f0'; // Green color for the plant, white for others
             ctx.lineWidth = 1;
 
-            // Turtle graphics state
-            let x = canvasWidth / 2 + offsetX * scale; // Start in the middle, apply pan/zoom
-            let y = canvasHeight + offsetY * scale; // Start at the bottom, apply pan/zoom
-            let angle = -90; // Start pointing upwards (in degrees)
+            let x, y, angle, lsystemString, lsystemAngle, stepLength;
+
+             if (fractalType === 'hilbert') {
+                 ctx.strokeStyle = '#fff'; // White for Hilbert
+                 // Start near the top-left for Hilbert, apply global scale/translate
+                 x = canvasWidth * 0.1 + translateX * globalScale;
+                 y = canvasHeight * 0.1 + translateY * globalScale;
+                 angle = 0; // Start pointing right
+                 lsystemString = hilbertString;
+                 lsystemAngle = hilbertAngle;
+                 stepLength = Math.min(canvasWidth, canvasHeight) / (Math.pow(2, hilbertGenerations) -1) * globalScale; // Adjust step based on generations and scale
+             } else if (fractalType === 'dragon') {
+                 ctx.strokeStyle = '#fff'; // White for Dragon
+                 // Start near the left-center for Dragon, apply global scale/translate
+                 x = canvasWidth * 0.2 + translateX * globalScale;
+                 y = canvasHeight * 0.5 + translateY * globalScale;
+                 angle = 0; // Start pointing right
+                 lsystemString = dragonString;
+                 lsystemAngle = dragonAngle;
+                 stepLength = Math.min(canvasWidth, canvasHeight) / Math.pow(2, dragonGenerations / 2) * globalScale * 0.5; // Adjust step
+             }
+             else { // L-System Plant
+                 ctx.strokeStyle = '#0f0'; // Green for Plant
+                 // Start at the bottom-middle for Plant, apply global scale/translate
+                 x = canvasWidth / 2 + translateX * globalScale;
+                 y = canvasHeight + translateY * globalScale;
+                 angle = -90; // Start pointing upwards (in degrees)
+                 lsystemString = lsystemString; // Original plant string
+                 lsystemAngle = lsystemAngle;
+                 stepLength = 10 * globalScale; // Initial step length, apply scale
+             }
+
+
             const stack = []; // For saving and restoring state ([x, y, angle])
 
             let drawnSteps = 0;
@@ -717,8 +710,18 @@
                 switch (char) {
                     case 'F': // Move forward and draw a line
                     case 'G': // Move forward without drawing (if G is used in rules)
-                        const nextX = x + lsystemStep * scale * Math.cos(angleRad); // Apply scale
-                        const nextY = y + lsystemStep * scale * Math.sin(angleRad); // Apply scale
+                         // For Hilbert and Dragon, 'F' draws, 'A' and 'B' are ignored
+                         if (fractalType === 'hilbert' && (char === 'A' || char === 'B')) {
+                             drawnSteps++;
+                             break;
+                         }
+                         if (fractalType === 'dragon' && (char === 'X' || char === 'Y')) {
+                             drawnSteps++;
+                             break;
+                         }
+
+                        const nextX = x + stepLength * Math.cos(angleRad);
+                        const nextY = y + stepLength * Math.sin(angleRad);
                         ctx.moveTo(x, y);
                         ctx.lineTo(nextX, nextY);
                         x = nextX;
@@ -756,10 +759,33 @@
             ctx.stroke(); // Draw all the segments at once
         }
 
-        function animateLSystem() {
-            if (!lsystemAnimating || lsystemAnimationStep > lsystemString.length) {
-                lsystemAnimating = false;
-                 document.getElementById('lsystemAnimateBtn').textContent = 'Start Drawing';
+        function animateLSystem(fractalType) {
+            let animating, animationStep, lsystemString, animationStepIncrement;
+
+            if (fractalType === 'hilbert') {
+                 animating = hilbertAnimating;
+                 animationStep = hilbertAnimationStep;
+                 lsystemString = hilbertString;
+                 animationStepIncrement = 100; // Adjust speed
+            } else if (fractalType === 'dragon') {
+                 animating = dragonAnimating;
+                 animationStep = dragonAnimationStep;
+                 lsystemString = dragonString;
+                 animationStepIncrement = 100; // Adjust speed
+            } else { // L-System Plant
+                 animating = lsystemAnimating;
+                 animationStep = lsystemAnimationStep;
+                 lsystemString = lsystemString; // Original plant string
+                 animationStepIncrement = 50; // Adjust speed
+            }
+
+
+            if (!animating || animationStep > lsystemString.length) {
+                 if (fractalType === 'hilbert') hilbertAnimating = false;
+                 else if (fractalType === 'dragon') dragonAnimating = false;
+                 else lsystemAnimating = false;
+
+                 document.getElementById(`${fractalType}AnimateBtn`).textContent = 'Start Drawing';
                 return;
             }
 
@@ -768,11 +794,15 @@
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
             // Draw up to the current animation step
-            renderLSystem(lsystemAnimationStep);
+            renderLSystem(fractalType, animationStep);
 
-            lsystemAnimationStep += 50; // Increment step size for animation speed (adjust as needed)
+            // Increment the animation step
+            if (fractalType === 'hilbert') hilbertAnimationStep += animationStepIncrement;
+            else if (fractalType === 'dragon') dragonAnimationStep += animationStepIncrement;
+            else lsystemAnimationStep += animationStepIncrement;
 
-            animationFrameId = requestAnimationFrame(animateLSystem);
+
+            animationFrameId = requestAnimationFrame(() => animateLSystem(fractalType));
         }
 
 
@@ -782,22 +812,24 @@
             // Cancel any ongoing animation before drawing a new static frame
             cancelAnimationFrame(animationFrameId);
 
-            // Reset pan and zoom for non-Mandelbrot/Julia fractals for simplicity
-            // Or implement specific pan/zoom mapping for each
-            if (currentFractal !== 'mandelbrot' && currentFractal !== 'julia') {
-                 offsetX = 0;
-                 offsetY = 0;
-                 scale = 1;
-                 // Note: For Fern/Sierpinski/L-System, pan/zoom is applied within their mapping functions
-            }
+            // Clear canvas before drawing
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillStyle = '#000'; // Set background to black
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+
+            // Apply global translation and scale transformation to the context
+            // This simplifies drawing functions for line-based fractals
+            ctx.save(); // Save the current context state
+            // ctx.translate(canvasWidth / 2 + translateX, canvasHeight / 2 + translateY); // Translate to center + pan
+            // ctx.scale(globalScale, globalScale); // Apply scale
+
+            // For line fractals, apply transform within the drawing function or adjust starting points/step length
+            // Let's apply it within the drawing functions for more control over positioning
 
             switch (currentFractal) {
-                case 'mandelbrot':
-                    drawMandelbrot();
-                    break;
-                case 'julia':
-                    drawJulia();
+                case 'koch':
+                    drawKochSnowflake();
                     break;
                 case 'fern':
                     drawFern();
@@ -805,33 +837,34 @@
                 case 'sierpinski':
                     drawSierpinski();
                     break;
-                case 'lsystem':
-                    drawLSystem();
+                case 'hilbert':
+                    drawLSystem('hilbert'); // Use the generic L-System drawing for Hilbert
+                    break;
+                case 'dragon':
+                    drawLSystem('dragon'); // Use the generic L-System drawing for Dragon
                     break;
             }
+
+            ctx.restore(); // Restore the context to remove the global transform
         }
 
         // --- Event Listeners for Pan and Zoom ---
 
         canvas.addEventListener('mousedown', (e) => {
-            if (currentFractal === 'mandelbrot' || currentFractal === 'julia') {
-                isDragging = true;
-                dragStartX = e.clientX;
-                dragStartY = e.clientY;
-                canvas.style.cursor = 'grabbing';
-            }
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            canvas.style.cursor = 'grabbing';
         });
 
         canvas.addEventListener('mousemove', (e) => {
-            if (isDragging && (currentFractal === 'mandelbrot' || currentFractal === 'julia')) {
+            if (isDragging) {
                 const dx = e.clientX - dragStartX;
                 const dy = e.clientY - dragStartY;
 
-                // Update offset based on pixel movement and current scale
-                const viewWidth = 4 / scale;
-                const viewHeight = viewWidth * (canvasHeight / canvasWidth); // Maintain aspect ratio
-                offsetX -= (dx / canvasWidth) * viewWidth;
-                offsetY -= (dy / canvasHeight) * viewHeight;
+                // Update translation based on pixel movement
+                translateX += dx / globalScale; // Adjust translation by inverse scale
+                translateY += dy / globalScale;
 
                 dragStartX = e.clientX;
                 dragStartY = e.clientY;
@@ -841,92 +874,101 @@
         });
 
         canvas.addEventListener('mouseup', () => {
-            if (currentFractal === 'mandelbrot' || currentFractal === 'julia')) {
-                isDragging = false;
-                canvas.style.cursor = 'grab';
-            }
+            isDragging = false;
+            canvas.style.cursor = 'grab';
         });
 
         canvas.addEventListener('mouseleave', () => {
-             if (currentFractal === 'mandelbrot' || currentFractal === 'julia')) {
-                isDragging = false;
-                 canvas.style.cursor = 'grab';
-             }
+             isDragging = false;
+             canvas.style.cursor = 'grab';
         });
 
 
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault(); // Prevent default scrolling
 
-            if (currentFractal === 'mandelbrot' || currentFractal === 'julia')) {
-                 const mouseX = e.clientX - canvas.getBoundingClientRect().left;
-                 const mouseY = e.clientY - canvas.getBoundingClientRect().top;
+            const mouseX = e.clientX - canvas.getBoundingClientRect().left;
+            const mouseY = e.clientY - canvas.getBoundingClientRect().top;
 
-                 // Get fractal coordinates at the mouse position before zooming
-                 const { x: fractalX, y: fractalY } = mapToFractalCoords(mouseX, mouseY);
+            // Calculate the point in "fractal" coordinates before scaling
+            const fractalMouseX = (mouseX - canvasWidth / 2 - translateX) / globalScale;
+            const fractalMouseY = (mouseY - canvasHeight / 2 - translateY) / globalScale;
 
-                 const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9; // Zoom in or out
-                 scale *= zoomFactor;
 
-                 // Update offset to keep the mouse position centered after zooming
-                 const { x: newFractalX, y: newFractalY } = mapToFractalCoords(mouseX, mouseY);
-                 offsetX += newFractalX - fractalX;
-                 offsetY += newFractalY - fractalY;
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9; // Zoom in or out
+            const oldScale = globalScale;
+            globalScale *= zoomFactor;
 
-                 drawFractal();
-            } else {
-                 // Basic scaling for other fractals (adjust step length or mapping)
-                 const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-                 scale *= zoomFactor; // Apply scale to the global scale variable
+            // Update translation to keep the point under the mouse the same
+            // New mouse position in canvas coords relative to center: (mouseX - canvasWidth/2, mouseY - canvasHeight/2)
+            // This point should correspond to the same fractalMouseX, fractalMouseY
+            // (mouseX - canvasWidth/2 - newTranslateX) / newScale = fractalMouseX
+            // newTranslateX = mouseX - canvasWidth/2 - fractalMouseX * newScale
+            translateX = (mouseX - canvasWidth / 2) / globalScale - fractalMouseX;
+            translateY = (mouseY - canvasHeight / 2) / globalScale - fractalMouseY;
 
-                 // For Fern/Sierpinski/L-System, redraw to apply the new scale
-                 drawFractal();
-            }
+
+            drawFractal();
         });
 
         // Add touch support for pan and zoom
         let touchStartX, touchStartY;
+        let initialTranslateX, initialTranslateY;
         let initialScale;
         let lastTouchDistance = -1;
+        let initialMidpointX, initialMidpointY;
+
 
         canvas.addEventListener('touchstart', (e) => {
-             if (e.touches.length === 1 && (currentFractal === 'mandelbrot' || currentFractal === 'julia')) {
+             if (e.touches.length === 1) {
                  isDragging = true;
                  touchStartX = e.touches[0].clientX;
                  touchStartY = e.touches[0].clientY;
+                 initialTranslateX = translateX;
+                 initialTranslateY = translateY;
                  canvas.style.cursor = 'grabbing';
              } else if (e.touches.length === 2) {
                  // Pinch to zoom
                  isDragging = false; // Disable dragging during pinch
                  lastTouchDistance = getTouchDistance(e.touches);
-                 initialScale = scale;
+                 initialScale = globalScale;
+
+                 // Calculate initial midpoint of touches in canvas coordinates
+                 const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                 const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+                 // Calculate initial midpoint in "fractal" coordinates
+                 initialMidpointX = (midX - canvasWidth / 2 - translateX) / globalScale;
+                 initialMidpointY = (midY - canvasHeight / 2 - translateY) / globalScale;
+
              }
              e.preventDefault(); // Prevent default touch behavior (like scrolling)
         });
 
         canvas.addEventListener('touchmove', (e) => {
-             if (isDragging && e.touches.length === 1 && (currentFractal === 'mandelbrot' || currentFractal === 'julia')) {
+             if (isDragging && e.touches.length === 1) {
                  const dx = e.touches[0].clientX - touchStartX;
                  const dy = e.touches[0].clientY - touchStartY;
 
-                 const viewWidth = 4 / scale;
-                 const viewHeight = viewWidth * (canvasHeight / canvasWidth);
-                 offsetX -= (dx / canvasWidth) * viewWidth;
-                 offsetY -= (dy / canvasHeight) * viewHeight;
-
-                 touchStartX = e.touches[0].clientX;
-                 touchStartY = e.touches[0].clientY;
+                 // Update translation based on pixel movement and current scale
+                 translateX = initialTranslateX + dx / globalScale;
+                 translateY = initialTranslateY + dy / globalScale;
 
                  drawFractal();
              } else if (e.touches.length === 2) {
                  const currentTouchDistance = getTouchDistance(e.touches);
                  if (lastTouchDistance !== -1) {
                      const zoomFactor = currentTouchDistance / lastTouchDistance;
-                     scale = initialScale * zoomFactor;
+                     globalScale = initialScale * zoomFactor;
 
-                     // Optional: Center zoom around the midpoint of the touches
-                     // This is more complex and might require calculating the midpoint in fractal coords
-                     // For simplicity here, we just apply the scale.
+                     // Calculate current midpoint of touches in canvas coordinates
+                     const currentMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                     const currentMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+                     // Update translation to keep the initial midpoint in fractal coords under the current midpoint in canvas coords
+                     translateX = (currentMidX - canvasWidth / 2) / globalScale - initialMidpointX;
+                     translateY = (currentMidY - canvasHeight / 2) / globalScale - initialMidpointY;
+
 
                      drawFractal();
                  }
@@ -964,23 +1006,28 @@
                     document.getElementById(`${fractalType}-content`).classList.add('active');
 
                     // Reset pan and zoom when switching fractals
-                    offsetX = 0;
-                    offsetY = 0;
-                    scale = 1;
+                    translateX = 0;
+                    translateY = 0;
+                    globalScale = 1;
                     lastTouchDistance = -1; // Reset touch zoom
 
                     // Stop any ongoing animation
                     cancelAnimationFrame(animationFrameId);
                     fernAnimating = false; // Ensure animation flags are reset
                     sierpinskiAnimating = false;
-                    lsystemAnimating = false;
+                    hilbertAnimating = false;
+                    dragonAnimating = false;
+
+                    // Regenerate L-System strings if needed
+                    if (currentFractal === 'hilbert') generateLSystemString('hilbert');
+                    if (currentFractal === 'dragon') generateLSystemString('dragon');
 
 
                     // Generate and add controls for the new fractal
                     generateControls(currentFractal);
 
                     // Set canvas size and draw the new fractal
-                    setCanvasSize();
+                    setCanvasSize(); // setCanvasSize calls drawFractal()
                 }
             });
         });
@@ -996,11 +1043,16 @@
         // Generate controls for the initial fractal
         generateControls(currentFractal);
 
-        // Draw the initial fractal
-        drawFractal();
+        // Draw the initial fractal (called by setCanvasSize)
+        // drawFractal();
 
         // Set initial cursor style
         canvas.style.cursor = 'grab';
+
+        // Generate initial L-System strings
+        generateLSystemString('hilbert');
+        generateLSystemString('dragon');
+
 
     </script>
 
