@@ -65,17 +65,146 @@
              background-color: #3b82f6; /* Blue background */
              color: white;
              border: none;
-             border-radius: 5agers: 4;
-        let fernLSystemAnimating = false;
-        let fernLSystemAnimationStep = 0;
-        let fernLSystemString = "";
-        let fernLSystemRules = {"X": "F+[[X]-X]-F[-FX]+X", "F": "FF"};
-        let fernLSystemAxiom = "X";
-        let fernLSystemAngle = 25; // Angle in degrees
+             border-radius: 5px;
+             cursor: pointer;
+             font-size: 1rem;
+             transition: background-color 0.3s ease;
+             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow */
+         }
 
+         button:hover {
+             background-color: #2563eb; /* Darker blue on hover */
+         }
+
+         /* Hide fractal divs by default */
+         .fractal-content {
+             display: none;
+         }
+
+         /* Show the active fractal div */
+         .fractal-content.active {
+             display: block;
+         }
+
+         /* Navigation styling */
+         nav a {
+             padding: 10px 15px;
+             margin: 0 5px;
+             color: #3b82f6; /* Blue text */
+             text-decoration: none;
+             font-weight: bold;
+             border-radius: 5px;
+             transition: background-color 0.3s ease;
+         }
+
+         nav a:hover {
+             background-color: #eff6ff; /* Light blue background on hover */
+         }
+
+         nav a.active {
+             background-color: #3b82f6;
+             color: white;
+         }
+
+         /* Styles for overlay buttons */
+         .overlay-buttons {
+             position: absolute;
+             top: 10px;
+             right: 10px;
+             display: flex;
+             flex-direction: column;
+             gap: 5px;
+             z-index: 10; /* Ensure buttons are above the canvas */
+         }
+
+         .overlay-buttons button {
+             padding: 5px 10px;
+             font-size: 0.9rem;
+             background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+             color: white;
+             border-radius: 4px;
+             box-shadow: none; /* Remove shadow for smaller buttons */
+         }
+
+         .overlay-buttons button:hover {
+             background-color: rgba(0, 0, 0, 0.7);
+         }
+
+    </style>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    <header class="bg-white shadow-md py-4">
+        <div class="container mx-auto px-6">
+            <h1 class="text-2xl font-bold text-center text-gray-800">Interactive Fractals</h1>
+        </div>
+    </header>
+
+    <nav class="bg-gray-200 py-3 shadow-sm">
+        <div class="container mx-auto px-6 flex justify-center flex-wrap">
+            <a href="#koch" class="nav-link active" data-fractal="koch">Koch Snowflake</a>
+            <a href="#sierpinski" class="nav-link" data-fractal="sierpinski">Sierpinski Triangle</a>
+            <a href="#hilbert" class="nav-link" data-fractal="hilbert">Hilbert Curve</a>
+            <a href="#dragon" class="nav-link" data-fractal="dragon">Dragon Curve</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-8">
+
+        <div id="canvas-container">
+            <canvas id="fractalCanvas"></canvas>
+            <div class="overlay-buttons">
+                <button id="zoomInBtn">+</button>
+                <button id="zoomOutBtn">-</button>
+                <button id="resetViewBtn">Reset View</button>
+            </div>
+            <div id="controls" class="controls">
+                </div>
+        </div>
+
+        <div id="koch-content" class="fractal-content active"></div>
+        <div id="sierpinski-content" class="fractal-content"></div>
+        <div id="hilbert-content" class="fractal-content"></div>
+        <div id="dragon-content" class="fractal-content"></div>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+        <p>&copy; 2023 Interactive Fractals</p>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const controlsDiv = document.getElementById('controls');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const fractalContentDivs = document.querySelectorAll('.fractal-content');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const resetViewBtn = document.getElementById('resetViewBtn');
+
+
+        let currentFractal = 'koch'; // Default fractal
+        let animationFrameId = null; // To manage animation loops
+
+        // Canvas dimensions (will be set dynamically)
+        let canvasWidth;
+        let canvasHeight;
+
+        // Pan and Zoom variables (simplified for line fractals)
+        let translateX = 0;
+        let translateY = 0;
+        let globalScale = 1; // Use a single global scale for simpler fractals
+        let isDragging = false;
+        let dragStartX, dragStartY;
+
+        // --- Fractal Specific Parameters ---
+
+        // Koch Snowflake
+        let kochGenerations = 4;
 
         // Sierpinski Triangle (Line Method)
-        let sierpinskiGenerations = 4;
+        let sierpinskiGenerations = 3; // Reduced default generation
 
 
         // Hilbert Curve
@@ -129,14 +258,6 @@
                 case 'koch':
                     controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="kochGenerations" value="${kochGenerations}" min="1" max="7">`));
                     break;
-                case 'fern': // L-System Fern
-                     controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="fernLSystemGenerations" value="${fernLSystemGenerations}" min="1" max="7">`));
-                     controlsDiv.appendChild(createControlGroup('Angle (Degrees):', `<input type="number" id="fernLSystemAngle" value="${fernLSystemAngle}" step="1">`));
-                     const fernAnimateBtn = document.createElement('button');
-                     fernAnimateBtn.textContent = fernLSystemAnimating ? 'Stop Drawing' : 'Start Drawing';
-                     fernAnimateBtn.id = 'fernLSystemAnimateBtn';
-                     controlsDiv.appendChild(fernAnimateBtn);
-                    break;
                 case 'sierpinski': // Line Method
                      controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="sierpinskiGenerations" value="${sierpinskiGenerations}" min="1" max="10">`));
                     break;
@@ -167,29 +288,6 @@
                     document.getElementById('kochGenerations').addEventListener('change', (e) => {
                         kochGenerations = parseInt(e.target.value);
                         drawFractal();
-                    });
-                    break;
-                case 'fern': // L-System Fern
-                    document.getElementById('fernLSystemGenerations').addEventListener('change', (e) => {
-                        fernLSystemGenerations = parseInt(e.target.value);
-                        generateLSystemString('fern'); // Regenerate string
-                        fernLSystemAnimationStep = 0; // Reset animation
-                        drawFractal(); // Draw the initial state or full generated string
-                    });
-                     document.getElementById('fernLSystemAngle').addEventListener('change', (e) => {
-                        fernLSystemAngle = parseFloat(e.target.value);
-                        fernLSystemAnimationStep = 0; // Reset animation
-                        drawFractal();
-                    });
-                     document.getElementById('fernLSystemAnimateBtn').addEventListener('click', () => {
-                         fernLSystemAnimating = !fernLSystemAnimating;
-                         document.getElementById('fernLSystemAnimateBtn').textContent = fernLSystemAnimating ? 'Stop Drawing' : 'Start Drawing';
-                         if (fernLSystemAnimating) {
-                             fernLSystemAnimationStep = 0; // Start drawing from scratch
-                             animateLSystem('fern');
-                         } else {
-                             cancelAnimationFrame(animationFrameId);
-                         }
                     });
                     break;
                 case 'sierpinski': // Line Method
@@ -342,11 +440,6 @@
             let axiom, rules, generations;
             if (fractalType === 'koch') { // Koch is handled by recursion, but keeping L-System structure for consistency if needed later
                  return ""; // Koch doesn't use L-System string generation here
-            } else if (fractalType === 'fern') { // L-System Fern
-                axiom = fernLSystemAxiom;
-                rules = fernLSystemRules;
-                generations = fernLSystemGenerations;
-                fernLSystemString = axiom;
             } else if (fractalType === 'hilbert') { // L-System Hilbert
                 axiom = hilbertAxiom;
                 rules = hilbertRules;
@@ -372,10 +465,7 @@
                 currentString = nextString;
             }
 
-            if (fractalType === 'fern') {
-                 fernLSystemString = currentString;
-                 console.log("Generated Fern L-System String:", fernLSystemString);
-            } else if (fractalType === 'hilbert') {
+            if (fractalType === 'hilbert') {
                  hilbertString = currentString;
                  console.log("Generated Hilbert String:", hilbertString);
             } else if (fractalType === 'dragon') {
@@ -391,11 +481,7 @@
              ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
              let animating, animationStep, lsystemString;
-             if (fractalType === 'fern') { // L-System Fern
-                 animating = fernLSystemAnimating;
-                 animationStep = fernLSystemAnimationStep;
-                 lsystemString = fernLSystemString;
-             } else if (fractalType === 'hilbert') { // L-System Hilbert
+             if (fractalType === 'hilbert') { // L-System Hilbert
                  animating = hilbertAnimating;
                  animationStep = hilbertAnimationStep;
                  lsystemString = hilbertString;
@@ -424,16 +510,7 @@
 
             let x, y, angle, lsystemString, lsystemAngle, stepLength;
 
-             if (fractalType === 'fern') { // L-System Fern
-                 ctx.strokeStyle = '#0f0'; // Green for Fern
-                 // Start at the bottom-middle for Fern, adjusted by pan/zoom
-                 x = canvasWidth / 2 * globalScale + translateX;
-                 y = canvasHeight * globalScale + translateY;
-                 angle = -90; // Start pointing upwards (in degrees)
-                 lsystemString = fernLSystemString;
-                 lsystemAngle = fernLSystemAngle;
-                 stepLength = 10 * globalScale; // Initial step length, apply scale
-             } else if (fractalType === 'hilbert') { // L-System Hilbert
+             if (fractalType === 'hilbert') { // L-System Hilbert
                  ctx.strokeStyle = '#fff'; // White for Hilbert
                  // Start near the top-left for Hilbert, adjusted by pan/zoom
                  x = canvasWidth * 0.1 * globalScale + translateX;
@@ -482,12 +559,6 @@
                              drawnSteps++;
                              break;
                          }
-                         // For Fern, 'X' is ignored, 'F' draws
-                          if (fractalType === 'fern' && char === 'X') {
-                             drawnSteps++;
-                             break;
-                          }
-
 
                         const nextX = x + stepLength * Math.cos(angleRad);
                         const nextY = y + stepLength * Math.sin(angleRad);
@@ -531,12 +602,7 @@
         function animateLSystem(fractalType) {
             let animating, animationStep, lsystemString, animationStepIncrement;
 
-            if (fractalType === 'fern') { // L-System Fern
-                 animating = fernLSystemAnimating;
-                 animationStep = fernLSystemAnimationStep;
-                 lsystemString = fernLSystemString;
-                 animationStepIncrement = 50; // Adjust speed
-            } else if (fractalType === 'hilbert') { // L-System Hilbert
+            if (fractalType === 'hilbert') { // L-System Hilbert
                  animating = hilbertAnimating;
                  animationStep = hilbertAnimationStep;
                  lsystemString = hilbertString;
@@ -553,8 +619,7 @@
 
 
             if (!animating || animationStep > lsystemString.length) {
-                 if (fractalType === 'fern') fernLSystemAnimating = false;
-                 else if (fractalType === 'hilbert') hilbertAnimating = false;
+                 if (fractalType === 'hilbert') hilbertAnimating = false;
                  else if (fractalType === 'dragon') dragonAnimating = false;
 
                  document.getElementById(`${fractalType}AnimateBtn`).textContent = 'Start Drawing';
@@ -569,8 +634,7 @@
             renderLSystem(fractalType, animationStep);
 
             // Increment the animation step
-            if (fractalType === 'fern') fernLSystemAnimationStep += animationStepIncrement;
-            else if (fractalType === 'hilbert') hilbertAnimationStep += animationStepIncrement;
+            if (fractalType === 'hilbert') hilbertAnimationStep += animationStepIncrement;
             else if (fractalType === 'dragon') dragonAnimationStep += animationStepIncrement;
 
 
@@ -602,9 +666,6 @@
             switch (currentFractal) {
                 case 'koch':
                     drawKochSnowflake();
-                    break;
-                case 'fern': // L-System Fern
-                    drawLSystem('fern');
                     break;
                 case 'sierpinski': // Line Method
                     drawSierpinskiTriangle();
@@ -826,13 +887,11 @@
                     // Stop any ongoing animation
                     cancelAnimationFrame(animationFrameId);
                     // Reset animation flags for L-Systems
-                    fernLSystemAnimating = false;
                     hilbertAnimating = false;
                     dragonAnimating = false;
 
 
                     // Regenerate L-System strings if needed
-                    if (currentFractal === 'fern') generateLSystemString('fern');
                     if (currentFractal === 'hilbert') generateLSystemString('hilbert');
                     if (currentFractal === 'dragon') generateLSystemString('dragon');
 
@@ -864,7 +923,6 @@
         canvas.style.cursor = 'grab';
 
         // Generate initial L-System strings for applicable fractals
-        generateLSystemString('fern');
         generateLSystemString('hilbert');
         generateLSystemString('dragon');
 
