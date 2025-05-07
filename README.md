@@ -152,6 +152,4 @@ Contributions to this project are welcome. If you have ideas for new fractals, i
 
 [Majid Rebouh](https://github.com/mimossaaa)
 
-## License
 
-[MIT License](LICENSE) (You should create a `LICENSE` file if you want to specify a license)
