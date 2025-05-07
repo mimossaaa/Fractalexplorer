@@ -130,6 +130,58 @@
              background-color: rgba(0, 0, 0, 0.7);
          }
 
+         /* Footer social buttons styling */
+         .social-buttons {
+             display: flex;
+             justify-content: center;
+             gap: 20px; /* Space between buttons */
+             margin-top: 20px;
+             margin-bottom: 20px;
+         }
+
+         .social-button {
+             display: block;
+             width: 50px; /* Size of the diamond base */
+             height: 50px; /* Size of the diamond base */
+             background: linear-gradient(45deg, #3b82f6, #1d4ed8); /* Initial gradient */
+             color: white;
+             text-decoration: none;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             font-weight: bold;
+             transform: rotate(45deg); /* Rotate to make it a diamond */
+             transition: background 0.3s ease, transform 0.3s ease;
+             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+             position: relative; /* Needed for content rotation */
+         }
+
+         .social-button:hover {
+             background: linear-gradient(45deg, #1d4ed8, #3b82f6); /* Gradient on hover */
+             transform: rotate(45deg) scale(1.1); /* Scale up slightly on hover */
+         }
+
+         .social-button span {
+             transform: rotate(-45deg); /* Counter-rotate content */
+             display: block; /* Ensure span takes up space */
+         }
+
+         /* Specific colors for buttons */
+         .social-button.github {
+             background: linear-gradient(45deg, #333, #1a1a1a);
+         }
+         .social-button.github:hover {
+             background: linear-gradient(45deg, #1a1a1a, #333);
+         }
+
+         .social-button.linkedin {
+             background: linear-gradient(45deg, #0077b5, #0e76a8);
+         }
+          .social-button.linkedin:hover {
+             background: linear-gradient(45deg, #0e76a8, #0077b5);
+         }
+
+
     </style>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
@@ -170,7 +222,11 @@
     </main>
 
     <footer class="bg-gray-800 text-white text-center py-4 mt-8">
-        <p>&copy; 2023 Interactive Fractals</p>
+        <div class="social-buttons">
+             <a href="https://github.com/mimossaaa" target="_blank" class="social-button github"><span>GitHub</span></a>
+             <a href="https://www.linkedin.com/in/majid-rebouh-846b462b3/" target="_blank" class="social-button linkedin"><span>LinkedIn</span></a>
+        </div>
+        <p>&copy; 2025 Majid Rebouh</p>
     </footer>
 
     <script>
