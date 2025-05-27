@@ -198,6 +198,9 @@
             <a href="#sierpinski" class="nav-link" data-fractal="sierpinski">Sierpinski Triangle</a>
             <a href="#hilbert" class="nav-link" data-fractal="hilbert">Hilbert Curve</a>
             <a href="#dragon" class="nav-link" data-fractal="dragon">Dragon Curve</a>
+            <a href="#cantor" class="nav-link" data-fractal="cantor">Cantor Set</a>
+            <a href="#levy" class="nav-link" data-fractal="levy">Lévy C Curve</a>
+            <a href="#vicsek" class="nav-link" data-fractal="vicsek">Vicsek Fractal</a>
         </div>
     </nav>
 
@@ -218,6 +221,9 @@
         <div id="sierpinski-content" class="fractal-content"></div>
         <div id="hilbert-content" class="fractal-content"></div>
         <div id="dragon-content" class="fractal-content"></div>
+        <div id="cantor-content" class="fractal-content"></div>
+        <div id="levy-content" class="fractal-content"></div>
+        <div id="vicsek-content" class="fractal-content"></div>
 
     </main>
 
@@ -226,7 +232,7 @@
              <a href="https://github.com/mimossaaa" target="_blank" class="social-button github">GitHub</a>
              <a href="https://www.linkedin.com/in/majid-rebouh-846b462b3/" target="_blank" class="social-button linkedin">LinkedIn</a>
         </div>
-        <p>&copy; 2025 Majid Rebouh</p>
+        <p>© 2025 Majid Rebouh</p>
     </footer>
 
     <script>
@@ -281,6 +287,17 @@
         let dragonAxiom = "FX";
         let dragonAngle = 90; // Angle in degrees
 
+        // Cantor Set
+        let cantorGenerations = 6;
+        let cantorLineHeight = 10; // Height of each line segment (visual thickness)
+        let cantorLineSpacing = 20; // Vertical space between generations
+
+        // Levy C Curve
+        let levyGenerations = 12; // High generations can be computationally intensive
+
+        // Vicsek Fractal
+        let vicsekGenerations = 4;
+
 
         // --- Helper Functions ---
 
@@ -330,6 +347,17 @@
                      dragonAnimateBtn.textContent = dragonAnimating ? 'Stop Drawing' : 'Start Drawing';
                      dragonAnimateBtn.id = 'dragonAnimateBtn';
                      controlsDiv.appendChild(dragonAnimateBtn);
+                    break;
+                case 'cantor':
+                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="cantorGenerations" value="${cantorGenerations}" min="0" max="10">`));
+                    controlsDiv.appendChild(createControlGroup('Line Height:', `<input type="number" id="cantorLineHeight" value="${cantorLineHeight}" min="1" max="50">`));
+                    controlsDiv.appendChild(createControlGroup('Line Spacing:', `<input type="number" id="cantorLineSpacing" value="${cantorLineSpacing}" min="5" max="50">`));
+                    break;
+                case 'levy':
+                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="levyGenerations" value="${levyGenerations}" min="0" max="15">`));
+                    break;
+                case 'vicsek':
+                    controlsDiv.appendChild(createControlGroup('Generations:', `<input type="number" id="vicsekGenerations" value="${vicsekGenerations}" min="0" max="6">`));
                     break;
             }
 
@@ -386,6 +414,32 @@
                          } else {
                              cancelAnimationFrame(animationFrameId);
                          }
+                    });
+                    break;
+                case 'cantor':
+                    document.getElementById('cantorGenerations').addEventListener('change', (e) => {
+                        cantorGenerations = parseInt(e.target.value);
+                        drawFractal();
+                    });
+                    document.getElementById('cantorLineHeight').addEventListener('change', (e) => {
+                        cantorLineHeight = parseInt(e.target.value);
+                        drawFractal();
+                    });
+                    document.getElementById('cantorLineSpacing').addEventListener('change', (e) => {
+                        cantorLineSpacing = parseInt(e.target.value);
+                        drawFractal();
+                    });
+                    break;
+                case 'levy':
+                    document.getElementById('levyGenerations').addEventListener('change', (e) => {
+                        levyGenerations = parseInt(e.target.value);
+                        drawFractal();
+                    });
+                    break;
+                case 'vicsek':
+                    document.getElementById('vicsekGenerations').addEventListener('change', (e) => {
+                        vicsekGenerations = parseInt(e.target.value);
+                        drawFractal();
                     });
                     break;
             }
@@ -569,8 +623,8 @@
              if (fractalType === 'hilbert') { // L-System Hilbert
                  ctx.strokeStyle = '#fff'; // White for Hilbert
                  // Start near the top-left for Hilbert, adjusted by pan/zoom
-                 x = canvasWidth * 0.1 * globalScale + translateX;
-                 y = canvasHeight * 0.1 * globalScale + translateY;
+                 x = canvasWidth * 0.1 * globalScale + translateX * globalScale;
+                 y = canvasHeight * 0.1 * globalScale + translateY * globalScale;
                  angle = 0; // Start pointing right
                  lsystemString = hilbertString;
                  lsystemAngle = hilbertAngle;
@@ -578,8 +632,8 @@
              } else if (fractalType === 'dragon') { // L-System Dragon
                  ctx.strokeStyle = '#fff'; // White for Dragon
                  // Start near the left-center for Dragon, adjusted by pan/zoom
-                 x = canvasWidth * 0.2 * globalScale + translateX;
-                 y = canvasHeight * 0.5 * globalScale + translateY;
+                 x = canvasWidth * 0.2 * globalScale + translateX * globalScale;
+                 y = canvasHeight * 0.5 * globalScale + translateY * globalScale;
                  angle = 0; // Start pointing right
                  lsystemString = dragonString;
                  lsystemAngle = dragonAngle;
@@ -606,12 +660,14 @@
                 switch (char) {
                     case 'F': // Move forward and draw a line
                     case 'G': // Move forward without drawing (if G is used in rules)
-                         // For Hilbert and Dragon, 'F' draws, 'A' and 'B' are ignored
+                         // For Hilbert and Dragon, 'A' and 'B' are ignored, 'F' draws a line
                          if (fractalType === 'hilbert' && (char === 'A' || char === 'B')) {
+                             // A and B do nothing in Hilbert
                              drawnSteps++;
                              break;
                          }
                          if (fractalType === 'dragon' && (char === 'X' || char === 'Y')) {
+                             // X and Y do nothing in Dragon
                              drawnSteps++;
                              break;
                          }
@@ -697,6 +753,118 @@
             animationFrameId = requestAnimationFrame(() => animateLSystem(fractalType));
         }
 
+        // --- NEW FRACTALS ---
+
+        function drawCantorSet() {
+            cancelAnimationFrame(animationFrameId);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            ctx.fillStyle = '#fff'; // White color for the filled segments
+
+            // Initial segment length, adjusted by pan and zoom
+            const initialLength = Math.min(canvasWidth, canvasHeight) * 0.8 * globalScale;
+            // Center horizontally, adjusted by pan/zoom
+            const startX = (canvasWidth / 2 - initialLength / 2) + translateX * globalScale;
+            // Start higher up, adjusted by pan/zoom
+            const startY = (canvasHeight * 0.1) + translateY * globalScale;
+
+            drawCantorRecursive(startX, startY, initialLength, cantorGenerations);
+        }
+
+        function drawCantorRecursive(x, y, length, generations) {
+            if (generations < 0) { // Base case for recursion, ensures it stops at 0 generations
+                return;
+            }
+
+            // Draw the current segment as a filled rectangle
+            ctx.fillRect(x, y, length, cantorLineHeight * globalScale); // Apply scale to height too
+
+            if (generations > 0) {
+                const newLength = length / 3;
+                // Move down for the next generation's segments, applying scale to spacing
+                const nextY = y + (cantorLineHeight + cantorLineSpacing) * globalScale;
+
+                drawCantorRecursive(x, nextY, newLength, generations - 1); // Left third
+                drawCantorRecursive(x + newLength * 2, nextY, newLength, generations - 1); // Right third
+            }
+        }
+
+        function drawLevyCCurve() {
+            cancelAnimationFrame(animationFrameId);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+
+            // Initial points for the curve
+            const size = Math.min(canvasWidth, canvasHeight) * 0.6;
+            // Start points, adjusted by pan and zoom
+            const p1 = { x: canvasWidth / 2 - size / 2 * globalScale + translateX * globalScale, y: canvasHeight / 2 + size / 4 * globalScale + translateY * globalScale };
+            const p2 = { x: canvasWidth / 2 + size / 2 * globalScale + translateX * globalScale, y: canvasHeight / 2 + size / 4 * globalScale + translateY * globalScale };
+
+            drawLevyCRecursive(p1.x, p1.y, p2.x, p2.y, levyGenerations);
+            ctx.stroke();
+        }
+
+        function drawLevyCRecursive(x1, y1, x2, y2, generations) {
+            if (generations === 0) {
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+            } else {
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+
+                // Calculate the third point (the "peak" of the C-curve triangle)
+                // This formula rotates the vector (dx, dy) by 45 degrees counter-clockwise
+                // and scales it by 0.5 (which is correct for the Levy C-curve construction)
+                const px = x1 + (dx - dy) / 2;
+                const py = y1 + (dx + dy) / 2;
+
+                drawLevyCRecursive(x1, y1, px, py, generations - 1);
+                drawLevyCRecursive(px, py, x2, y2, generations - 1);
+            }
+        }
+
+        function drawVicsekFractal() {
+            cancelAnimationFrame(animationFrameId);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            ctx.fillStyle = '#fff'; // White color for the filled squares
+
+            const initialSize = Math.min(canvasWidth, canvasHeight) * 0.8 * globalScale;
+            // Center the initial square, adjusted by pan/zoom
+            const startX = (canvasWidth / 2 - initialSize / 2) + translateX * globalScale;
+            const startY = (canvasHeight / 2 - initialSize / 2) + translateY * globalScale;
+
+            drawVicsekRecursive(startX, startY, initialSize, vicsekGenerations);
+        }
+
+        function drawVicsekRecursive(x, y, size, generations) {
+            if (generations === 0) {
+                ctx.fillRect(x, y, size, size); // Draw the current square
+            } else {
+                const newSize = size / 3;
+
+                // Draw the 5 squares (center and 4 corners)
+                // Top-left
+                drawVicsekRecursive(x, y, newSize, generations - 1);
+                // Top-right
+                drawVicsekRecursive(x + newSize * 2, y, newSize, generations - 1);
+                // Bottom-left
+                drawVicsekRecursive(x, y + newSize * 2, newSize, generations - 1);
+                // Bottom-right
+                drawVicsekRecursive(x + newSize * 2, y + newSize * 2, newSize, generations - 1);
+                // Center
+                drawVicsekRecursive(x + newSize, y + newSize, newSize, generations - 1);
+            }
+        }
 
         // --- Main Drawing Function ---
 
@@ -709,15 +877,9 @@
             ctx.fillStyle = '#000'; // Set background to black
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-
-            // Apply global translation and scale transformation to the context
-            // This simplifies drawing functions for line-based fractals
-            ctx.save(); // Save the current context state
-            // ctx.translate(canvasWidth / 2 + translateX, canvasHeight / 2 + translateY); // Translate to center + pan
-            // ctx.scale(globalScale, globalScale); // Apply scale
-
-            // For line fractals, apply transform within the drawing function or adjust starting points/step length
-            // Let's apply it within the drawing functions for more control over positioning
+            // Note: The original structure applies pan/zoom within each fractal's drawing function
+            // by adjusting initial coordinates and sizes using globalScale, translateX, translateY.
+            // This is an alternative to using ctx.translate/scale directly on the context.
 
             switch (currentFractal) {
                 case 'koch':
@@ -732,9 +894,17 @@
                 case 'dragon': // L-System Dragon
                     drawLSystem('dragon');
                     break;
+                case 'cantor':
+                    drawCantorSet();
+                    break;
+                case 'levy':
+                    drawLevyCCurve();
+                    break;
+                case 'vicsek':
+                    drawVicsekFractal();
+                    break;
             }
-
-            ctx.restore(); // Restore the context to remove the global transform
+            // Removed an unpaired ctx.restore() here, as ctx.save() was not globally applied.
         }
 
         // --- Event Listeners for Pan and Zoom ---
@@ -786,11 +956,9 @@
 
 
             const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9; // Zoom in or out
-            const oldScale = globalScale;
             globalScale *= zoomFactor;
 
             // Update translation to keep the point under the mouse the same
-            // newTranslateX = (mouseX - canvasWidth/2) / newScale - fractalMouseX
             translateX = (mouseX - canvasWidth / 2) / globalScale - fractalMouseX;
             translateY = (mouseY - canvasHeight / 2) / globalScale - fractalMouseY;
 
@@ -825,8 +993,8 @@
                  const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
 
                  // Calculate initial midpoint in "fractal" coordinates
-                 initialMidpointX = (midX - canvasWidth / 2 - translateX) / globalScale;
-                 initialMidpointY = (midY - canvasHeight / 2 - translateY) / globalScale;
+                 initialMidpointX = (midX - canvasWidth / 2 - translateX * globalScale) / globalScale;
+                 initialMidpointY = (midY - canvasHeight / 2 - translateY * globalScale) / globalScale;
 
              }
              e.preventDefault(); // Prevent default touch behavior (like scrolling)
@@ -853,6 +1021,9 @@
                      const currentMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
 
                      // Update translation to keep the initial midpoint in fractal coords under the current midpoint in canvas coords
+                     // This calculation is a bit tricky with the current pan/zoom approach
+                     // Let's simplify and make it zoom towards the center of the canvas if multi-touch is complex
+                     // For now, sticking to the single point under touch logic
                      translateX = (currentMidX - canvasWidth / 2) / globalScale - initialMidpointX;
                      translateY = (currentMidY - canvasHeight / 2) / globalScale - initialMidpointY;
 
@@ -971,9 +1142,6 @@
 
         // Generate controls for the initial fractal
         generateControls(currentFractal);
-
-        // Draw the initial fractal (called by setCanvasSize)
-        // drawFractal();
 
         // Set initial cursor style
         canvas.style.cursor = 'grab';
